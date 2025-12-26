@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coffee & Books AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="main-card">
+        <div class="top-bar">
+            <div class="lang-group">
+                <button class="lang-btn active" data-lang="ru">RU</button>
+                <button class="lang-btn" data-lang="en">EN</button>
+                <button class="lang-btn" data-lang="kz">KZ</button>
+            </div>
+
+            <button id="themeBtn" class="theme-toggle" title="Сменить тему">
+                <span class="sun-icon">☀️</span>
+                <span class="moon-icon">🌙</span>
+            </button>
+        </div>
+
+        <header class="header">
+            <h1 data-i18n="title">Coffee & Books AI</h1>
+            <p data-i18n="subtitle">ИИ подберет книгу под твой кофе</p>
+        </header>
+
+        <section class="form-section">
+            <label class="label" data-i18n="coffee_label">Какой кофе сегодня?</label>
+            <div class="coffee-grid">
+                <div class="coffee-item active" data-value="strong espresso, intense and fast-paced">
+                    <span class="emoji">☕</span>
+                    <span data-i18n="espresso">Эспрессо</span>
+                </div>
+                <div class="coffee-item" data-value="creamy latte, cozy and gentle">
+                    <span class="emoji">🥛</span>
+                    <span data-i18n="latte">Латте</span>
+                </div>
+                <div class="coffee-item" data-value="balanced cappuccino, harmonic">
+                    <span class="emoji">☁️</span>
+                    <span data-i18n="cappuccino">Капучино</span>
+                </div>
+                <div class="coffee-item" data-value="iced americano, refreshing and cold">
+                    <span class="emoji">🧊</span>
+                    <span data-i18n="americano">Американо</span>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label data-i18n="mood_label">Твое настроение</label>
+                <select id="mood">
+                    <option value="energetic, adventures" data-i18n="mood_1">⚡ Приключения</option>
+                    <option value="tired, cozy stories" data-i18n="mood_2">😴 Уют и покой</option>
+                    <option value="need motivation" data-i18n="mood_3">🚀 Мотивация</option>
+                    <option value="relaxed" data-i18n="mood_4">🌊 Расслабление</option>
+                    <option value="mysterious" data-i18n="mood_5">🕵️ Загадки</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label data-i18n="user_label">Кто вы?</label>
+                <select id="userType">
+                    <option value="teenager 14-18" data-i18n="user_1">Подросток</option>
+                    <option value="university student" data-i18n="user_2">Студент</option>
+                    <option value="mature adult" data-i18n="user_3">Взрослый</option>
+                </select>
+            </div>
+
+            <button id="searchBtn" class="search-btn" data-i18n="search_btn">Подобрать книги</button>
+        </section>
+
+        <div id="loading" class="loading-block hidden">
+            <div class="spinner"></div>
+            <p data-i18n="loading_text">Gemini 2.5 ищет лучшие истории...</p>
+        </div>
+
+        <div id="results" class="results-container"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
