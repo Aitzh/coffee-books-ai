@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coffee & Books AI</title>
+    <title>Coffee & AI Recommendations</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -26,11 +26,30 @@
         </div>
 
         <header class="header">
-            <h1 data-i18n="title">Coffee & Books AI</h1>
-            <p data-i18n="subtitle">ИИ подберет книгу под твой кофе</p>
+            <h1 data-i18n="title">Coffee & AI</h1>
+            <p data-i18n="subtitle">ИИ подберет контент под твой кофе</p>
         </header>
 
-        <section class="form-section">
+        <!-- Переключатель Books/Movies/Music -->
+        <section class="content-type-section">
+            <div class="content-type-switcher">
+                <button class="content-type-btn active" data-type="books">
+                    <span class="icon">📚</span>
+                    <span data-i18n="books_label">Книги</span>
+                </button>
+                <button class="content-type-btn" data-type="movies">
+                    <span class="icon">🎬</span>
+                    <span data-i18n="movies_label">Фильмы</span>
+                </button>
+                <button class="content-type-btn" data-type="music">
+                    <span class="icon">🎵</span>
+                    <span data-i18n="music_label">Музыка</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Форма для книг и фильмов -->
+        <section id="booksMoviesForm" class="form-section">
             <label class="label" data-i18n="coffee_label">Какой кофе сегодня?</label>
             <div class="coffee-grid">
                 <div class="coffee-item active" data-value="strong espresso, intense and fast-paced">
@@ -70,13 +89,84 @@
                     <option value="mature adult" data-i18n="user_3">Взрослый</option>
                 </select>
             </div>
-
-            <button id="searchBtn" class="search-btn" data-i18n="search_btn">Подобрать книги</button>
         </section>
+
+        <!-- Форма для музыки -->
+        <section id="musicForm" class="form-section hidden">
+            <label class="label" data-i18n="genre_label">Жанр</label>
+            <div class="music-grid">
+                <div class="music-item active" data-value="indie">
+                    <span class="emoji">🎸</span>
+                    <span data-i18n="genre_indie">Indie</span>
+                </div>
+                <div class="music-item" data-value="pop">
+                    <span class="emoji">🎤</span>
+                    <span data-i18n="genre_pop">Pop</span>
+                </div>
+                <div class="music-item" data-value="rock">
+                    <span class="emoji">🤘</span>
+                    <span data-i18n="genre_rock">Rock</span>
+                </div>
+                <div class="music-item" data-value="electronic">
+                    <span class="emoji">🎧</span>
+                    <span data-i18n="genre_electronic">Electronic</span>
+                </div>
+                <div class="music-item" data-value="jazz">
+                    <span class="emoji">🎷</span>
+                    <span data-i18n="genre_jazz">Jazz</span>
+                </div>
+                <div class="music-item" data-value="hip-hop">
+                    <span class="emoji">🎵</span>
+                    <span data-i18n="genre_hiphop">Hip-Hop</span>
+                </div>
+            </div>
+
+            <label class="label" data-i18n="period_label">Эпоха</label>
+            <div class="music-grid">
+                <div class="music-item active" data-value="2020-now">
+                    <span class="emoji">🆕</span>
+                    <span data-i18n="period_new">2020-сейчас</span>
+                </div>
+                <div class="music-item" data-value="2010-2020">
+                    <span class="emoji">📱</span>
+                    <span data-i18n="period_2010">2010-2020</span>
+                </div>
+                <div class="music-item" data-value="1995-2010">
+                    <span class="emoji">💿</span>
+                    <span data-i18n="period_90s">1995-2010</span>
+                </div>
+                <div class="music-item" data-value="1980-1995">
+                    <span class="emoji">📻</span>
+                    <span data-i18n="period_80s">1980-1995</span>
+                </div>
+            </div>
+
+            <label class="label" data-i18n="context_label">Контекст</label>
+            <div class="music-grid">
+                <div class="music-item active" data-value="chill">
+                    <span class="emoji">😌</span>
+                    <span data-i18n="context_chill">Отдых</span>
+                </div>
+                <div class="music-item" data-value="focus">
+                    <span class="emoji">🎯</span>
+                    <span data-i18n="context_focus">Фокус</span>
+                </div>
+                <div class="music-item" data-value="party">
+                    <span class="emoji">🎉</span>
+                    <span data-i18n="context_party">Вечеринка</span>
+                </div>
+                <div class="music-item" data-value="late_night">
+                    <span class="emoji">🌙</span>
+                    <span data-i18n="context_night">Поздний вечер</span>
+                </div>
+            </div>
+        </section>
+
+        <button id="searchBtn" class="search-btn" data-i18n="search_btn">Подобрать контент</button>
 
         <div id="loading" class="loading-block hidden">
             <div class="spinner"></div>
-            <p data-i18n="loading_text">Gemini 2.5 ищет лучшие истории...</p>
+            <p data-i18n="loading_text">AI ищет лучший контент...</p>
         </div>
 
         <div id="results" class="results-container"></div>

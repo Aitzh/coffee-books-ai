@@ -5,25 +5,41 @@ export async function searchBooks(queries, userType) {
     let rawBooks = [];
     
     for (const q of queries) {
-        const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=5&key=${config.googleBooks.key}`;
+        const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=5&key=${config.googleBooks.key}&langRestrict=en`;
+        
         try {
-            const res = await fetch(url).then(r => r.json());
-            if (res.items) rawBooks.push(...res.items);
+            const res = await fetch(url);
+            const data = await res.json();
+            
+            if (data.items) {
+                rawBooks.push(...data.items);
+            }
         } catch (e) {
-            console.error(`Search error for ${q}:`, e.message);
+            console.error(`❌ Search error for "${q}":`, e.message);
         }
     }
 
-    // Умная пост-фильтрация по категориям
-    return Array.from(new Map(rawBooks.map(item => [item.id, item])).values())
-        .filter(b => b.volumeInfo?.imageLinks?.thumbnail)
+    // Удаляем дубликаты по ID
+    const uniqueBooks = Array.from(
+        new Map(rawBooks.map(item => [item.id, item])).values()
+    );
+
+    // Фильтруем книги
+    const filtered = uniqueBooks
+        .filter(b => b.volumeInfo?.imageLinks?.thumbnail) // Только с обложками
         .filter(b => {
             const cats = (b.volumeInfo.categories || []).map(c => c.toLowerCase());
-            // Если взрослый/студент — убираем детское
+            
+            // Если взрослый/студент — убираем детские книги
             if (userType.includes("adult") || userType.includes("student")) {
-                return !cats.some(c => c.includes("juvenile") || c.includes("children"));
+                return !cats.some(c => 
+                    c.includes("juvenile") || 
+                    c.includes("children") || 
+                    c.includes("kids")
+                );
             }
             return true;
-        })
-        .slice(0, 4);
+        });
+
+    return filtered.slice(0, 4);
 }
