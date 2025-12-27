@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coffee & AI Recommendations</title>
@@ -161,6 +162,21 @@
                 </div>
             </div>
         </section>
+
+        <!-- Блок для ввода ключа доступа -->
+        <div id="key-input-field" class="key-input-section">
+            <label class="label" data-i18n="enter_key">Введите код доступа</label>
+            <div class="key-input-group">
+                <input type="text" id="access-key-input" placeholder="XXXX-XXXX-XXXX" maxlength="20">
+                <button id="key-submit-btn" class="key-submit-btn">✓</button>
+            </div>
+        </div>
+
+        <!-- Индикатор остатка попыток -->
+        <div id="access-info" class="access-badge hidden">
+            <span data-i18n="remaining_label">Осталось попыток:</span> 
+            <span id="remaining-count">--</span>
+        </div>
 
         <button id="searchBtn" class="search-btn" data-i18n="search_btn">Подобрать контент</button>
 

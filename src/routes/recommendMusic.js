@@ -3,27 +3,29 @@ import { callAI } from "../ai/client.js";
 import { searchMusic } from "../services/spotify.js";
 import { cleanJSON } from "../utils/cleanJSON.js";
 import { cache } from "../utils/cache.js";
+import { gatekeeper } from "../access-system/index.js";
 
 const router = express.Router();
+const CATEGORY = "music";
 
-router.post("/", async (req, res) => {
+router.post("/", gatekeeper.wrap(CATEGORY, async (req, res) => {
     const { genre, period, context, lang } = req.body;
     
     const cacheKey = `music-${genre}-${period}-${context}-${lang}`.toLowerCase();
-    if (cache.has(cacheKey)) {
-        console.log("📦 Взято из кэша (Music)");
-        return res.json(cache.get(cacheKey));
-    }
 
     try {
         console.log(`🎵 Новый запрос (Music): genre=${genre}, period=${period}, context=${context}`);
+
+        if (cache.has(cacheKey)) {
+            console.log("📦 Взято из кэша (Music)");
+            return res.json(cache.get(cacheKey));
+        }
 
         // Определяем energy на основе context
         let energy = "medium";
         if (context === "party" || context === "focus") energy = "high";
         else if (context === "late_night" || context === "chill") energy = "low";
 
-        // ЭТАП 1: AI генерирует vibe_logic на английском
         const vibePrompt = `You are a music curator. Create a brief, engaging explanation (1-2 sentences) about why this music selection fits the user's request.
 
 SELECTION PARAMETERS:
@@ -49,7 +51,6 @@ Return JSON:
             console.warn("⚠️ Ошибка парсинга vibe, использую fallback");
         }
 
-        // ЭТАП 2: Поиск музыки через Spotify
         console.log(`🔎 Ищу музыку: genre=${genre}, period=${period}, context=${context}, energy=${energy}`);
         
         const tracks = await searchMusic(
@@ -60,7 +61,7 @@ Return JSON:
                 energy, 
                 source: "mixed" 
             },
-            "adult" // Для музыки возраст не критичен
+            "adult"
         );
 
         if (tracks.length === 0) {
@@ -70,17 +71,13 @@ Return JSON:
             });
         }
 
-        // Форматируем данные треков с дополнительными данными
         const formattedTracks = tracks.map(t => {
-            // Форматируем длительность
             const durationMinutes = Math.floor(t.duration_ms / 60000);
             const durationSeconds = Math.floor((t.duration_ms % 60000) / 1000);
             const durationFormatted = `${durationMinutes}:${durationSeconds.toString().padStart(2, '0')}`;
             
-            // Получаем год выпуска
             const releaseYear = t.album.release_date ? new Date(t.album.release_date).getFullYear() : 'N/A';
             
-            // Выбираем лучшую обложку
             const coverImage = t.album.images?.[0]?.url || 
                               t.album.images?.[1]?.url || 
                               t.album.images?.[2]?.url || 
@@ -100,14 +97,12 @@ Return JSON:
                 popularity: t.popularity || 0,
                 release_year: releaseYear,
                 album_type: t.album.album_type,
-                // Дополнительные метаданные для отображения
-                genre: genre, // Используем переданный жанр
+                genre: genre,
                 period: period,
                 context: context
             };
         });
 
-        // ЭТАП 3: Перевод vibe_logic (если не английский)
         let finalResponse;
         
         if (lang !== 'en') {
@@ -137,7 +132,6 @@ Return JSON:
             finalResponse = { tracks: formattedTracks, meta: { vibe_logic } };
         }
 
-        // Сохраняем в кэш
         if (cache.size > 100) cache.clear();
         cache.set(cacheKey, finalResponse);
 
@@ -147,6 +141,6 @@ Return JSON:
         console.error("🔥 Error (Music):", err);
         res.status(500).json({ error: "Server Error", details: err.message });
     }
-});
+}));
 
 export default router;

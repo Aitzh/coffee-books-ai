@@ -3,22 +3,24 @@ import { callAI } from "../ai/client.js";
 import { searchMovies } from "../services/tmdb.js";
 import { cleanJSON } from "../utils/cleanJSON.js";
 import { cache } from "../utils/cache.js";
+import { gatekeeper } from "../access-system/index.js";
 
 const router = express.Router();
+const CATEGORY = "movies";
 
-router.post("/", async (req, res) => {
+router.post("/", gatekeeper.wrap(CATEGORY, async (req, res) => {
     const { coffee, mood, userType, lang } = req.body;
     
     const cacheKey = `movies-${coffee}-${mood}-${userType}-${lang}`.toLowerCase();
-    if (cache.has(cacheKey)) {
-        console.log("📦 Взято из кэша (Movies)");
-        return res.json(cache.get(cacheKey));
-    }
 
     try {
         console.log(`🎬 Новый запрос (Movies): ${mood} + ${userType} (кофе: ${coffee})`);
 
-        // ЭТАП 1: AI анализирует настроение и возраст → генерирует жанры
+        if (cache.has(cacheKey)) {
+            console.log("📦 Взято из кэша (Movies)");
+            return res.json(cache.get(cacheKey));
+        }
+
         const searchPrompt = `You are a movie recommendation expert. Analyze the user's profile and generate TMDB search queries.
 
 USER PROFILE:
@@ -55,7 +57,6 @@ Return JSON:
         } catch (e) {
             console.warn("⚠️ Ошибка парсинга поиска, применяю fallback");
             
-            // Умный fallback на основе настроения
             let fallbackQueries = ["Drama"];
             if (mood.includes("energetic") || mood.includes("adventure")) {
                 fallbackQueries = ["Action", "Adventure", "Thriller"];
@@ -76,7 +77,6 @@ Return JSON:
         const queries = searchData.queries || ["Drama"];
         const vibe_logic = searchData.vibe_logic || "Movies for your mood...";
 
-        // ЭТАП 2: Поиск фильмов через TMDB
         console.log(`🔎 Ищу фильмы по запросам: ${queries.join(", ")}`);
         const movies = await searchMovies(queries, userType);
 
@@ -87,7 +87,6 @@ Return JSON:
             });
         }
 
-        // Форматируем данные фильмов
         const formattedMovies = movies.map(m => ({
             id: m.id,
             title: m.title,
@@ -97,7 +96,6 @@ Return JSON:
             releaseDate: m.release_date || "N/A"
         }));
 
-        // ЭТАП 3: Перевод на нужный язык (если не английский)
         let finalResponse;
         
         if (lang !== 'en') {
@@ -138,11 +136,9 @@ Return JSON:
                 finalResponse = { movies: formattedMovies, meta: { vibe_logic } };
             }
         } else {
-            // Английский язык — без перевода
             finalResponse = { movies: formattedMovies, meta: { vibe_logic } };
         }
 
-        // Сохраняем в кэш
         if (cache.size > 100) cache.clear();
         cache.set(cacheKey, finalResponse);
 
@@ -152,6 +148,6 @@ Return JSON:
         console.error("🔥 Error (Movies):", err);
         res.status(500).json({ error: "Server Error", details: err.message });
     }
-});
+}));
 
 export default router;

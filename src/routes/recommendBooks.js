@@ -3,22 +3,33 @@ import { callAI } from "../ai/client.js";
 import { searchBooks } from "../services/googleBooks.js";
 import { cleanJSON } from "../utils/cleanJSON.js";
 import { cache } from "../utils/cache.js";
+import { gatekeeper } from "../access-system/index.js";
 
 const router = express.Router();
+const CATEGORY = "books";
 
-router.post("/", async (req, res) => {
+// Используем обертку wrap, чтобы автоматизировать списание и расчет лимитов
+router.post("/", gatekeeper.wrap(CATEGORY, async (req, res) => {
     const { coffee, mood, userType, lang } = req.body;
     
     const cacheKey = `books-${coffee}-${mood}-${userType}-${lang}`.toLowerCase();
-    if (cache.has(cacheKey)) {
-        console.log("📦 Взято из кэша (Books)");
-        return res.json(cache.get(cacheKey));
-    }
 
     try {
         console.log(`📚 Новый запрос (Books): ${mood} + ${userType} (кофе: ${coffee})`);
 
-        // ЭТАП 1: AI анализирует настроение и возраст → генерирует запросы
+        // ==========================================
+        // ЭТАП 0: КЭШ
+        // ==========================================
+        if (cache.has(cacheKey)) {
+            console.log("📦 Взято из кэша (Books)");
+            // Просто отдаем. Обертка сама поймет, что это успешный ответ,
+            // спишет попытку в базе и допишет актуальный remaining.
+            return res.json(cache.get(cacheKey));
+        }
+
+        // ==========================================
+        // ЭТАП 1: AI → ГЕНЕРАЦИЯ ЗАПРОСОВ ПОИСКА
+        // ==========================================
         const searchPrompt = `You are a book recommendation expert. Analyze the user's profile and generate Google Books search queries.
 
 USER PROFILE:
@@ -53,7 +64,7 @@ Return JSON:
         } catch (e) {
             console.warn("⚠️ Ошибка парсинга поиска, применяю fallback");
             
-            // Умный fallback
+            // Твой оригинальный умный fallback
             let fallbackQueries = ["fiction"];
             if (mood.includes("energetic") || mood.includes("adventure")) {
                 fallbackQueries = ["adventure fiction", "thriller", "action"];
@@ -72,10 +83,12 @@ Return JSON:
         }
 
         const queries = searchData.queries || ["fiction"];
-        const vibe_logic = searchData.vibe_logic || "Books for your vibe...";
+        const vibeLogic = searchData.vibe_logic || "Books for your vibe...";
 
-        // ЭТАП 2: Поиск книг в Google Books
-        console.log(`🔎 Ищу книги: ${queries.join(", ")}`);
+        // ==========================================
+        // ЭТАП 2: ПОИСК В GOOGLE BOOKS
+        // ==========================================
+        console.log(`🔎 Ищу книги в Google Books: ${queries.join(", ")}`);
         const books = await searchBooks(queries, userType);
 
         if (books.length === 0) {
@@ -85,7 +98,7 @@ Return JSON:
             });
         }
 
-        // Форматируем данные книг
+        // Форматируем данные из Google Books API
         const formattedBooks = books.map(b => ({
             id: b.id,
             title: b.volumeInfo.title || "Unknown",
@@ -95,14 +108,19 @@ Return JSON:
             infoLink: b.volumeInfo.infoLink || "#"
         }));
 
-        // ЭТАП 3: Перевод (если не английский)
-        let finalResponse;
+        // ==========================================
+        // ЭТАП 3: ПЕРЕВОД (ЕСЛИ НУЖЕН)
+        // ==========================================
+        let finalResponse = {
+            books: formattedBooks,
+            meta: { vibe_logic: vibeLogic }
+        };
         
         if (lang !== 'en') {
             const targetLang = lang === 'kz' ? 'Kazakh' : 'Russian';
             const translationPrompt = `Translate to ${targetLang}. Keep it natural and concise.
 
-Vibe text: "${vibe_logic}"
+Vibe text: "${vibeLogic}"
 
 Books to translate:
 ${formattedBooks.map(b => `ID:${b.id} | Title:"${b.title}" | Description:"${b.description}"`).join("\n")}
@@ -121,7 +139,7 @@ Return JSON:
                 const transData = JSON.parse(cleanJSON(aiTransRaw));
 
                 finalResponse = {
-                    meta: { vibe_logic: transData.translated_vibe || vibe_logic },
+                    meta: { vibe_logic: transData.translated_vibe || vibeLogic },
                     books: formattedBooks.map(b => {
                         const trans = transData.translated_books?.find(tb => tb.id === b.id);
                         return { 
@@ -132,23 +150,30 @@ Return JSON:
                     })
                 };
             } catch (transErr) {
-                console.warn("⚠️ Ошибка перевода, отдаю оригинал");
-                finalResponse = { books: formattedBooks, meta: { vibe_logic } };
+                console.warn("⚠️ Ошибка перевода, отдаю оригинал на английском");
             }
-        } else {
-            finalResponse = { books: formattedBooks, meta: { vibe_logic } };
         }
 
-        // Сохраняем в кэш
+        // ==========================================
+        // ЭТАП 4: СОХРАНЕНИЕ В КЭШ И ОТВЕТ
+        // ==========================================
         if (cache.size > 100) cache.clear();
         cache.set(cacheKey, finalResponse);
 
+        // Просто вызываем res.json().
+        // Обертка withGatekeeper сама перехватит этот вызов, спишет попытку в базе
+        // и добавит в finalResponse.meta поле remaining.
         res.json(finalResponse);
 
     } catch (err) {
-        console.error("🔥 Critical Error:", err);
-        res.status(500).json({ error: "Server Error", details: err.message });
+        // Если произошла ошибка до res.json, управление попадет сюда.
+        // Обертка НЕ спишет попытку, так как ответ не был отправлен.
+        console.error("🔥 Критическая ошибка в роутере Books:", err);
+        res.status(500).json({ 
+            error: "Internal Server Error", 
+            details: err.message 
+        });
     }
-});
+}));
 
 export default router;
